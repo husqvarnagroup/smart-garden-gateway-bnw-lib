@@ -1,0 +1,22 @@
+version = 1
+
+[[annotations]]
+path = [
+  "bnw/tfw/bnw-tfw-device-components/src/bnw/tfw/device/component/harness/_lwm2m/lwm2m-object-definitions.json",
+  "bnw/tfw/overview.png",
+  "bnw/tfw/README.md",
+  "bnw/tfw/bnw-tfw-components/src/bnw/tfw/component/harness/_cloud/README.md",
+  "README.md",
+  ".flake8",
+]
+SPDX-FileCopyrightText = "GARDENA GmbH"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+[[annotations]]
+path = [
+  "**/poetry.lock",
+  "**/*.pem",
+  "**/*.elf",
+]
+SPDX-FileCopyrightText = "NONE"
+SPDX-License-Identifier = "CC0-1.0"

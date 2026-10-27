@@ -1,0 +1,38 @@
+# SPDX-FileCopyrightText: GARDENA GmbH
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[tool.poetry]
+name = "bnw-transport-unix"
+version = "0.0.1"
+description = ""
+authors = ["Adrian Friedli <adrian.friedli@husqvarnagroup.com>"]
+packages = [{include = "bnw", from = "src"}]
+include = [
+    { path = '**/py.typed' },
+]
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.15"
+
+bnw-transport-base = { path = "../bnw-transport-base", develop = true}
+
+[tool.poetry.group.dev.dependencies]
+bnw-protocol = { path = "../../protocol", develop = true }
+bnw-tfw-gateway-components = { path = "../../tfw/bnw-tfw-gateway-components", develop = true }
+
+pytest = "^8.3.2"
+pytest-asyncio = "^0.24.0"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+
+[tool.poetry-dynamic-versioning]
+enable = false # enabled on CI, disabled for local development to reduce peotry lock file changes
+
+[tool.poetry-monorepo-dependency-plugin]
+enable = true
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
