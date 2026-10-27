@@ -1,0 +1,39 @@
+# SPDX-FileCopyrightText: GARDENA GmbH
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[tool.poetry]
+name = "bnw-pycode"
+version = "0.0.1"
+description = ""
+authors = ["Pascal Brogle <pascal.brogle@husqvarnagroup.com>"]
+packages = [{include = "bnw", from = "src"}]
+include = [
+    { path = '**/py.typed' },
+]
+
+[tool.poetry.dependencies]
+# We explicitly allow specific Python versions. Python >=3.13 is not supported yet and would result in errors.
+python = ">=3.10,<3.15"
+
+redbaron = { version = "^0.9.2" }
+topological-sort-backport = { version = "^0.3.0", python = "<3.9" }
+
+[tool.poetry.group.dev.dependencies]
+bnw-protocol = { path = "../protocol", develop = true }
+
+pytest = "^8.3.2"
+pytest-asyncio = "^0.24.0"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+
+[tool.poetry-dynamic-versioning]
+enable = false # enabled on CI, disabled for local development to reduce peotry lock file changes
+
+[tool.poetry-monorepo-dependency-plugin]
+enable = true
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
