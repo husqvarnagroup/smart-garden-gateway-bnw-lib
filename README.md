@@ -85,3 +85,13 @@ poetry env use "$BNW_LIB_PYTHON_EXECUTABLE"
 ```
 find . -name pyproject.toml ! -path "*/.venv*/*" -print -execdir poetry env use "$BNW_LIB_PYTHON_EXECUTABLE" \;
 ```
+
+## Create a Release on GitHub
+
+To create a release of the Python wheels, create a git tag in the form of
+`v<major>.<minor>.<patch>` that points to a commit on the `main` branch.
+Push the tag to GitHub. The `release` job in `.github/workflows/build.yaml` creates the release.
+The job fails if the tag does not point to a commit on `main`.
+
+If a release for the tag already exists, the job fails. To run it again, delete the release
+and the tag on GitHub, then push the tag again.
