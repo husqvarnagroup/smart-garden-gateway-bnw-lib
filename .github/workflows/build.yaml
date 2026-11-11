@@ -8,6 +8,7 @@ on:
   pull_request:
   push:
     branches: [main]
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
 
 concurrency:
   group: build-${{ github.workflow }}-${{ github.ref }}
@@ -197,3 +198,33 @@ jobs:
 
       - name: Run zizmor
         uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
+
+  release:
+    name: Release
+    needs: [python-build, python-test, lint]
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0  # needed to check that the tag points to main
+          persist-credentials: false
+
+      - name: Check that tag is on main
+        run: git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+
+      - name: Download wheels
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: '*'
+          merge-multiple: true
+          path: dist
+
+      - name: Create GitHub Release
+        run: gh release create "$GITHUB_REF_NAME" dist/*.whl --generate-notes
