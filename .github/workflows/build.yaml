@@ -1,0 +1,199 @@
+# SPDX-FileCopyrightText: GARDENA GmbH
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+name: Build project
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+
+jobs:
+  python-build:
+    name: Build ${{ matrix.package.name }}
+    runs-on: ubuntu-26.04
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - name: bnw-activity
+            path: bnw/activity
+          - name: bnw-protocol
+            path: bnw/protocol
+          - name: bnw-transport-base
+            path: bnw/transport/bnw-transport-base
+          - name: bnw-transport-coap
+            path: bnw/transport/bnw-transport-coap
+          - name: bnw-transport-mqtt
+            path: bnw/transport/bnw-transport-mqtt
+          - name: bnw-transport-unix
+            path: bnw/transport/bnw-transport-unix
+          - name: bnw-tfw-pytest
+            path: bnw/tfw/bnw-tfw-pytest
+          - name: bnw-tfw-components
+            path: bnw/tfw/bnw-tfw-components
+          - name: bnw-tfw-fixtures
+            path: bnw/tfw/bnw-tfw-fixtures
+          - name: bnw-tfw-device-components
+            path: bnw/tfw/bnw-tfw-device-components
+          - name: bnw-tfw-device-fixtures
+            path: bnw/tfw/bnw-tfw-device-fixtures
+          - name: bnw-tfw-gateway-components
+            path: bnw/tfw/bnw-tfw-gateway-components
+          - name: bnw-tfw-gateway-fixtures
+            path: bnw/tfw/bnw-tfw-gateway-fixtures
+          - name: bnw-utils
+            path: bnw/utils
+          - name: bnw-pycode
+            path: bnw/pycode
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0  # poetry-dynamic-versioning reads the git tags
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: 3.14
+
+      - name: Install Poetry
+        run: pip install poetry==2.5.1
+
+      - name: Install root dependencies
+        run: poetry install --no-root
+
+      - name: Set Versions
+        run: |
+          # workaround until https://github.com/TechnologyBrewery/poetry-monorepo-dependency-plugin/pull/30 is merged
+          pip install git+https://github.com/husqvarnagroup/poetry-monorepo-dependency-plugin@gardena/main/2024-07-15
+          poetry self add "poetry-dynamic-versioning[plugin]"
+          poetry run poe poetryDynamicVersionAll
+
+      - name: Build Plugins
+        run: |
+          # workaround until https://github.com/TechnologyBrewery/poetry-monorepo-dependency-plugin/pull/30 is merged
+          pip install git+https://github.com/husqvarnagroup/poetry-monorepo-dependency-plugin@gardena/main/2024-07-15
+          poetry self add "poetry-dynamic-versioning[plugin]"
+        working-directory: ${{ matrix.package.path }}
+
+      - name: Build
+        run: |
+          poetry dynamic-versioning
+          VERSION=$(poetry version -s)
+          if [[ "$VERSION" == *"+"* ]]; then
+            # need to use exact pinning strategy as "Local version label can only be used with `==` or `!=` operators"
+            # since packaging version 22 (see https://github.com/pypa/packaging/issues/530)
+            poetry build-rewrite-path-deps --version-pinning-strategy=exact
+          else
+            poetry build-rewrite-path-deps --version-pinning-strategy=mixed
+          fi
+        working-directory: ${{ matrix.package.path }}
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ${{ matrix.package.name }}
+          path: ${{ matrix.package.path }}/dist
+
+  python-test:
+    name: Test ${{ matrix.package.name }} (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-26.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13", "3.14"]
+        package:
+          - name: bnw-activity
+            path: bnw/activity
+          - name: bnw-protocol
+            path: bnw/protocol
+          - name: bnw-transport-base
+            path: bnw/transport/bnw-transport-base
+          - name: bnw-transport-coap
+            path: bnw/transport/bnw-transport-coap
+          - name: bnw-transport-mqtt
+            path: bnw/transport/bnw-transport-mqtt
+          - name: bnw-transport-unix
+            path: bnw/transport/bnw-transport-unix
+          - name: bnw-tfw-pytest
+            path: bnw/tfw/bnw-tfw-pytest
+          - name: bnw-tfw-components
+            path: bnw/tfw/bnw-tfw-components
+          - name: bnw-tfw-fixtures
+            path: bnw/tfw/bnw-tfw-fixtures
+          - name: bnw-tfw-device-components
+            path: bnw/tfw/bnw-tfw-device-components
+          - name: bnw-tfw-device-fixtures
+            path: bnw/tfw/bnw-tfw-device-fixtures
+          - name: bnw-tfw-gateway-components
+            path: bnw/tfw/bnw-tfw-gateway-components
+          - name: bnw-tfw-gateway-fixtures
+            path: bnw/tfw/bnw-tfw-gateway-fixtures
+          - name: bnw-utils
+            path: bnw/utils
+          - name: bnw-pycode
+            path: bnw/pycode
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Poetry
+        run: pip install poetry==2.5.1
+
+      - name: Install Python Test Dependencies
+        run: poetry install --no-root
+        working-directory: ${{ matrix.package.path }}
+
+      - name: Run Tests
+        run: poetry run pytest tests/ --doctest-modules
+        working-directory: ${{ matrix.package.path }}
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Lint shell scripts
+        uses: ludeeus/action-shellcheck@00cae500b08a931fb5698e11e79bfbd38e612a38 # 2.0.0
+        with:
+          scandir: '.'
+
+      - name: Check REUSE compliance
+        uses: fsfe/reuse-action@676e2d560c9a403aa252096d99fcab3e1132b0f5 # v6.0.0
+
+      - name: Scan for secrets
+        uses: trufflesecurity/trufflehog@f714bf454f350590f4a24c3ddb1aef02c35bf5b6 # v3.97.5
+        with:
+          extra_args: --results=verified,unknown
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+
+      - name: Run pre-commit
+        uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd # v3.0.1
+        with:
+          extra_args: --all-files
+
+      - name: Run zizmor
+        uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
