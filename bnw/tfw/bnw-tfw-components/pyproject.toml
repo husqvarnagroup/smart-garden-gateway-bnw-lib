@@ -17,7 +17,7 @@ include = [
 python = ">=3.10,<3.15"
 
 
-amqtt = { version = "0.12.0" }
+amqtt = { version = "0.12.1" }
 pexpect = { git = "https://github.com/husqvarnagroup/pexpect.git", branch = "gardena/master/2023-11-15" }
 cryptography = { version = "46.0.7" }
 aiohttp = { version = "^3.8.0" }
